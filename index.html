@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Button Template Maker — 19×13</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #111; color: #eee; overflow: hidden; }
+
+  .app { display: grid; grid-template-columns: 340px 1fr; height: 100vh; }
+
+  .sidebar {
+    background: #1a1a1a; border-right: 1px solid #2a2a2a;
+    overflow-y: auto; padding: 20px;
+  }
+  .sidebar h1 { font-size: 16px; margin-bottom: 2px; letter-spacing: -0.01em; }
+  .sidebar .sub { font-size: 11px; color: #777; margin-bottom: 20px; line-height: 1.5; }
+  .sidebar h2 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin: 22px 0 10px; font-weight: 600; }
+
+  .dropzone {
+    display: block; position: relative;
+    border: 2px dashed #3a3a3a; border-radius: 10px; padding: 28px 12px;
+    text-align: center; cursor: pointer; transition: all 0.15s;
+    background: #202020;
+  }
+  .dropzone:hover { border-color: #0a84ff; background: #1e2a3a; }
+  .dropzone.drag-over { border-color: #0a84ff; background: #1e3a5f; }
+  .dropzone.has-image { padding: 10px; border-style: solid; border-color: #333; }
+  .dropzone img { max-width: 100%; max-height: 180px; border-radius: 4px; display: block; margin: 0 auto; }
+  .dropzone input { display: none; }
+  .dropzone .hint { font-size: 12px; color: #888; line-height: 1.5; }
+  .dropzone .hint strong { color: #ccc; font-weight: 500; }
+  .dropzone.has-image .hint { margin-top: 8px; font-size: 11px; color: #666; }
+
+  .image-info { font-size: 11px; color: #888; margin-top: 6px; text-align: center; }
+
+  .sizes-header {
+    display: grid; grid-template-columns: 1fr 80px 65px 28px; gap: 6px;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #666;
+    margin-bottom: 6px; padding: 0 4px;
+  }
+  .size-row {
+    display: grid; grid-template-columns: 1fr 80px 65px 28px; gap: 6px;
+    align-items: center; margin-bottom: 6px;
+  }
+  .size-row .label-cell {
+    font-size: 12px; color: #999; padding-left: 4px;
+  }
+  .size-row input[type=number] {
+    background: #262626; color: #eee; border: 1px solid #333;
+    border-radius: 5px; padding: 7px 9px; font-size: 13px; font-family: inherit;
+    width: 100%; min-width: 0;
+  }
+  .size-row input:focus { outline: none; border-color: #0a84ff; background: #2a2a2a; }
+  .size-row button.remove {
+    background: transparent; color: #666; border: 1px solid #333;
+    width: 28px; height: 28px; border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; padding: 0;
+  }
+  .size-row button.remove:hover { background: #2a0a0a; border-color: #5a1a1a; color: #ff6060; }
+
+  button.action {
+    background: #0a84ff; color: #fff; border: none; border-radius: 6px;
+    padding: 10px 14px; font-size: 13px; font-weight: 500; cursor: pointer;
+    width: 100%; margin-top: 6px; transition: background 0.15s;
+  }
+  button.action:hover { background: #0070e0; }
+  button.action.secondary { background: #262626; color: #ccc; }
+  button.action.secondary:hover { background: #333; }
+
+  .preset-row { display: flex; gap: 6px; margin-top: 6px; }
+  .preset-row button { flex: 1; padding: 7px 8px; font-size: 12px; background: #262626; color: #bbb; border: 1px solid #333; border-radius: 5px; cursor: pointer; }
+  .preset-row button:hover { background: #333; border-color: #0a84ff; color: #fff; }
+
+  .option-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding: 8px 0; font-size: 13px;
+  }
+  .option-row label { color: #bbb; flex: 1; cursor: pointer; }
+  .option-row input[type=number] {
+    background: #262626; color: #eee; border: 1px solid #333;
+    border-radius: 5px; padding: 6px 8px; font-size: 13px; width: 80px;
+  }
+  .option-row input[type=checkbox] {
+    width: 16px; height: 16px; accent-color: #0a84ff; cursor: pointer;
+  }
+
+  .stats { font-size: 11px; color: #777; margin-top: 10px; line-height: 1.6; padding: 10px; background: #1f1f1f; border-radius: 6px; }
+  .stats strong { color: #ccc; font-weight: 500; }
+
+  .tip {
+    font-size: 11px; color: #888; line-height: 1.5;
+    background: #1c1c1c; border-left: 2px solid #0a84ff;
+    padding: 10px 12px; border-radius: 4px; margin-top: 12px;
+  }
+
+  .main {
+    overflow: auto; background: #0c0c0c;
+    display: flex; align-items: center; justify-content: center;
+    padding: 30px;
+  }
+  .preview-wrap {
+    background: #fff; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    position: relative; flex-shrink: 0;
+  }
+  .template {
+    width: 19in; height: 13in; position: relative; background: #fff;
+    transform-origin: top left; overflow: hidden;
+  }
+  .copy {
+    position: absolute;
+    background: #f5f5f5;
+  }
+  .copy img {
+    width: 100%; height: 100%; display: block; object-fit: cover;
+    pointer-events: none;
+  }
+  .show-bounds .copy {
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+  }
+  .template.empty {
+    display: flex; align-items: center; justify-content: center;
+    color: #bbb; font-size: 20px;
+  }
+
+  .scatter-preview {
+    position: relative;
+    transform-origin: top left;
+    background: #222;
+  }
+  .scatter-preview img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    display: block;
+  }
+  .scatter-preview svg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
+  .zoom-control {
+    position: fixed; bottom: 20px; right: 20px;
+    background: rgba(30,30,30,0.95); backdrop-filter: blur(10px);
+    border-radius: 8px; padding: 8px 12px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: #aaa; z-index: 10;
+    border: 1px solid #2a2a2a;
+  }
+  .zoom-control button {
+    background: transparent; color: #ccc; border: 1px solid #3a3a3a;
+    width: 28px; height: 28px; border-radius: 5px; cursor: pointer; font-size: 14px;
+  }
+  .zoom-control button:hover { background: #333; }
+
+  @media print {
+    html, body { background: #fff !important; overflow: visible; height: auto; }
+    .app { display: block; height: auto; }
+    .sidebar, .zoom-control { display: none !important; }
+    .main { padding: 0; display: block; overflow: visible; background: #fff; }
+    .preview-wrap { box-shadow: none; }
+    .template { transform: none !important; box-shadow: none; }
+    .template > svg { display: none !important; }
+    .show-bounds .copy { box-shadow: none; }
+    @page { size: 19in 13in; margin: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <h1>Button Template Maker</h1>
+    <div class="sub">19"×13" sheet — print your image at a variety of sizes and cut buttons from the copies.</div>
+
+    <h2>Artwork</h2>
+    <label class="dropzone" id="dropzone">
+      <input type="file" accept="image/*" id="file">
+      <div id="dropzone-content" class="hint">
+        <strong>Drop image here</strong><br>or click to select
+      </div>
+    </label>
+    <div class="image-info" id="image-info"></div>
+    <button class="action secondary" id="rotate-btn" style="display:none;">↻ Rotate 90°</button>
+
+    <h2>Image Sizes & Counts</h2>
+    <div class="sizes-header">
+      <span>Preview</span><span>Width (in)</span><span>Count</span><span></span>
+    </div>
+    <div id="sizes"></div>
+    <button class="action secondary" id="add-size">+ Add size</button>
+    <div class="preset-row">
+      <button id="preset-variety">Variety</button>
+      <button id="preset-fill">Fill Page</button>
+      <button id="preset-big">Big Hero</button>
+    </div>
+    <div class="preset-row">
+      <button id="preset-scatter">Scatter on Image</button>
+      <button id="reroll-scatter" style="display:none;">↻ Re-roll</button>
+    </div>
+
+    <h2>Layout</h2>
+    <div class="option-row">
+      <label for="spacing">Gap between copies (in)</label>
+      <input type="number" id="spacing" value="0" step="0.05" min="0">
+    </div>
+    <div class="option-row">
+      <label for="margin">Page margin (in)</label>
+      <input type="number" id="margin" value="0" step="0.05" min="0">
+    </div>
+    <div class="option-row">
+      <label for="show-bounds">Show image boundaries</label>
+      <input type="checkbox" id="show-bounds" checked>
+    </div>
+    <div class="option-row">
+      <label for="show-guides">Show button cut guides</label>
+      <input type="checkbox" id="show-guides" checked>
+    </div>
+
+    <h2>Output</h2>
+    <button class="action" id="print-btn">Print Template</button>
+    <div class="stats" id="stats">Drop an image to get started</div>
+
+    <div class="tip">
+      <strong style="color:#0a84ff;">Printing:</strong> In the print dialog choose <strong>19×13" (Super B / Tabloid Extra)</strong>, <strong>Actual Size / 100% scale</strong> — disable "Fit to page".
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    <div class="preview-wrap" id="preview-wrap">
+      <div class="template empty show-bounds" id="template">
+        <span>Drop an image to get started</span>
+      </div>
+      <div class="scatter-preview" id="scatter-preview" hidden>
+        <img id="scatter-img" alt="">
+        <svg id="scatter-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="zoom-control">
+  <button id="zoom-out">−</button>
+  <span id="zoom-label">Fit</span>
+  <button id="zoom-in">+</button>
+  <button id="zoom-fit" title="Fit to screen">⇱</button>
+</div>
+
+<script>
+const PAGE_W = 19, PAGE_H = 13;
+const PX_PER_IN = 96;
+
+const state = {
+  image: null,
+  imageW: 0,
+  imageH: 0,
+  rotation: 0, // 0, 90, 180, 270
+  sizes: [
+    { id: 1, width: 9, count: 1 },
+    { id: 2, width: 4.5, count: 2 },
+    { id: 3, width: 2.5, count: 3 },
+  ],
+  fillMode: false,
+  scatterMode: false,
+  scatterPlacements: [],
+  scatterSizes: [],   // [{ diamInches, count }] snapshot from source layout
+  scatterZoom: 0.42,  // biggest button = this fraction of image short-dim
+  spacing: 0,
+  margin: 0,
+  showBounds: true,
+  showGuides: true,
+  zoom: null,
+};
+
+let nextSizeId = 4;
+
+// --- Aspect helpers ---
+function effectiveImageDims() {
+  if (state.rotation % 180 === 0) return { w: state.imageW, h: state.imageH };
+  return { w: state.imageH, h: state.imageW };
+}
+function imageAspect() {
+  const d = effectiveImageDims();
+  return d.w && d.h ? d.w / d.h : 1;
+}
+
+// --- Size rows UI ---
+function renderSizes() {
+  const container = document.getElementById('sizes');
+  container.innerHTML = '';
+  if (state.scatterMode) {
+    container.innerHTML = `
+      <div style="padding:12px;background:#2a1e3a;border:1px solid #a060ff;border-radius:6px;font-size:12px;color:#c89aff;line-height:1.5;">
+        <strong style="color:#fff;">Scatter preview</strong><br>
+        Shows varied button sizes scattered across the image so you can see what each one will capture.<br>
+        <span style="color:#887;">Click Re-roll for a new arrangement.</span>
+      </div>
+    `;
+    return;
+  }
+  if (state.fillMode) {
+    container.innerHTML = `
+      <div style="padding:12px;background:#1e2a3a;border:1px solid #0a84ff;border-radius:6px;font-size:12px;color:#9ac3ff;line-height:1.5;">
+        <strong style="color:#fff;">Fill Page mode</strong><br>
+        Auto-packs the page with varied sizes — no white space.<br>
+        <span style="color:#788;">Click Variety or Big Hero to customize.</span>
+      </div>
+    `;
+    return;
+  }
+  for (const s of state.sizes) {
+    const row = document.createElement('div');
+    row.className = 'size-row';
+    const h = (s.width / imageAspect()).toFixed(2);
+    row.innerHTML = `
+      <div class="label-cell">${s.width}×${h}"</div>
+      <input type="number" value="${s.width}" step="0.25" min="0.5" max="19" data-field="width" data-id="${s.id}">
+      <input type="number" value="${s.count}" step="1" min="0" max="200" data-field="count" data-id="${s.id}">
+      <button class="remove" data-id="${s.id}" title="Remove">×</button>
+    `;
+    container.appendChild(row);
+  }
+  container.querySelectorAll('input').forEach(input => {
+    input.addEventListener('input', e => {
+      const id = +e.target.dataset.id;
+      const field = e.target.dataset.field;
+      const row = state.sizes.find(s => s.id === id);
+      if (!row) return;
+      if (field === 'width') row.width = Math.max(0.25, parseFloat(e.target.value) || 0);
+      else if (field === 'count') row.count = Math.max(0, parseInt(e.target.value) || 0);
+      render();
+    });
+  });
+  container.querySelectorAll('button.remove').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const id = +e.currentTarget.dataset.id;
+      state.sizes = state.sizes.filter(s => s.id !== id);
+      renderSizes();
+      render();
+    });
+  });
+}
+
+document.getElementById('add-size').addEventListener('click', () => {
+  if (state.fillMode) return;
+  state.sizes.push({ id: nextSizeId++, width: 2, count: 2 });
+  renderSizes();
+  render();
+});
+
+function updateAddSizeVisibility() {
+  document.getElementById('add-size').style.display = (state.fillMode || state.scatterMode) ? 'none' : '';
+  document.getElementById('reroll-scatter').style.display = state.scatterMode ? '' : 'none';
+  document.getElementById('preset-scatter').style.display = state.scatterMode ? 'none' : '';
+}
+
+document.getElementById('preset-variety').addEventListener('click', () => {
+  state.fillMode = false;
+  state.scatterMode = false;
+  state.sizes = [
+    { id: nextSizeId++, width: 9, count: 1 },
+    { id: nextSizeId++, width: 4.5, count: 2 },
+    { id: nextSizeId++, width: 2.5, count: 3 },
+  ];
+  renderSizes();
+  render();
+});
+
+document.getElementById('preset-fill').addEventListener('click', () => {
+  state.fillMode = true;
+  state.scatterMode = false;
+  renderSizes();
+  render();
+});
+
+document.getElementById('preset-big').addEventListener('click', () => {
+  state.fillMode = false;
+  state.scatterMode = false;
+  state.sizes = [
+    { id: nextSizeId++, width: 12, count: 1 },
+    { id: nextSizeId++, width: 5, count: 1 },
+    { id: nextSizeId++, width: 3, count: 4 },
+  ];
+  renderSizes();
+  render();
+});
+
+document.getElementById('preset-scatter').addEventListener('click', () => {
+  state.scatterSizes = snapshotButtonSizes();
+  state.scatterMode = true;
+  state.fillMode = false;
+  state.scatterPlacements = computeScatter();
+  state.zoom = null; // re-fit
+  renderSizes();
+  render();
+});
+
+document.getElementById('reroll-scatter').addEventListener('click', () => {
+  state.scatterPlacements = computeScatter();
+  render();
+});
+
+// Snapshot button diameters (inches) + counts from whatever layout is currently active.
+// Fill Page: derive from placed copies (each button = min(w, h) of its copy).
+// Otherwise: use state.sizes (widths), converting to diameters via image aspect.
+function snapshotButtonSizes() {
+  const aspect = imageAspect() || 1;
+  const shortFactor = Math.min(1, 1 / aspect); // diameter = copyWidth × this
+  if (state.fillMode && state.image && state.imageW) {
+    const copies = fillPageLayout();
+    const byW = {};
+    for (const c of copies) {
+      const diam = Math.min(c.w, c.h);
+      const key = diam.toFixed(2);
+      byW[key] = (byW[key] || 0) + 1;
+    }
+    return Object.entries(byW)
+      .map(([k, v]) => ({ diamInches: parseFloat(k), count: v }))
+      .sort((a, b) => b.diamInches - a.diamInches);
+  }
+  return state.sizes
+    .filter(s => s.width > 0 && s.count > 0)
+    .map(s => ({ diamInches: s.width * shortFactor, count: s.count }))
+    .sort((a, b) => b.diamInches - a.diamInches);
+}
+
+// --- Image load ---
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file');
+const dzContent = document.getElementById('dropzone-content');
+const imageInfo = document.getElementById('image-info');
+const rotateBtn = document.getElementById('rotate-btn');
+
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    const img = new Image();
+    img.onload = () => {
+      state.image = dataUrl;
+      state.imageW = img.naturalWidth;
+      state.imageH = img.naturalHeight;
+      state.rotation = 0;
+      dropzone.classList.add('has-image');
+      dzContent.innerHTML = `<img src="${dataUrl}"><div class="hint">Click to replace</div>`;
+      imageInfo.textContent = `${img.naturalWidth} × ${img.naturalHeight}px · aspect ${(img.naturalWidth/img.naturalHeight).toFixed(2)}`;
+      rotateBtn.style.display = 'block';
+      if (state.scatterMode) state.scatterPlacements = computeScatter();
+      renderSizes();
+      render();
+    };
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+
+['dragenter', 'dragover'].forEach(ev => {
+  dropzone.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation();
+    dropzone.classList.add('drag-over');
+  });
+});
+['dragleave', 'drop'].forEach(ev => {
+  dropzone.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation();
+    dropzone.classList.remove('drag-over');
+  });
+});
+dropzone.addEventListener('drop', e => {
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+
+['dragenter', 'dragover', 'drop'].forEach(ev => {
+  window.addEventListener(ev, e => e.preventDefault());
+});
+
+rotateBtn.addEventListener('click', () => {
+  state.rotation = (state.rotation + 90) % 360;
+  if (state.scatterMode) state.scatterPlacements = computeScatter();
+  renderSizes();
+  render();
+});
+
+// --- Options ---
+document.getElementById('spacing').addEventListener('input', e => {
+  state.spacing = Math.max(0, parseFloat(e.target.value) || 0);
+  render();
+});
+document.getElementById('margin').addEventListener('input', e => {
+  state.margin = Math.max(0, parseFloat(e.target.value) || 0);
+  render();
+});
+document.getElementById('show-bounds').addEventListener('change', e => {
+  state.showBounds = e.target.checked;
+  render();
+});
+document.getElementById('show-guides').addEventListener('change', e => {
+  state.showGuides = e.target.checked;
+  render();
+});
+
+// --- Layout: multi-shelf packing with existing-shelf-fit check ---
+function layout() {
+  if (!state.image || state.imageW === 0) return [];
+  if (state.fillMode) return fillPageLayout();
+  const aspect = imageAspect();
+  const gap = state.spacing;
+  const margin = state.margin;
+  const usableW = PAGE_W - 2 * margin;
+
+  const rects = [];
+  for (const s of state.sizes) {
+    for (let i = 0; i < s.count; i++) {
+      let w = Math.min(s.width, usableW);
+      let h = w / aspect;
+      if (h > PAGE_H - 2 * margin) {
+        h = PAGE_H - 2 * margin;
+        w = h * aspect;
+      }
+      rects.push({ w, h, origWidth: s.width });
+    }
+  }
+  rects.sort((a, b) => b.h - a.h || b.w - a.w);
+
+  const shelves = [];
+  let nextY = margin;
+  const placed = [];
+
+  for (const r of rects) {
+    let done = false;
+    for (const sh of shelves) {
+      if (sh.cursor + r.w <= PAGE_W - margin + 0.001 && r.h <= sh.height + 0.001) {
+        placed.push({ x: sh.cursor, y: sh.y, w: r.w, h: r.h, origWidth: r.origWidth });
+        sh.cursor += r.w + gap;
+        done = true;
+        break;
+      }
+    }
+    if (done) continue;
+    if (nextY + r.h > PAGE_H - margin + 0.001) continue;
+    const sh = { y: nextY, height: r.h, cursor: margin + r.w + gap };
+    shelves.push(sh);
+    placed.push({ x: margin, y: nextY, w: r.w, h: r.h, origWidth: r.origWidth });
+    nextY += r.h + gap;
+  }
+
+  return placed;
+}
+
+// --- Fill-page: guillotine packing with multiple size tiers ---
+function fillPageLayout() {
+  const aspect = imageAspect();
+  const gap = state.spacing;
+  const margin = state.margin;
+
+  // Smallest copy: short dimension at least ~1.3" so any reasonable button cut still has a bit of framing.
+  const minShortDim = 1.3;
+  const minWidth = minShortDim * Math.max(1, aspect);
+  const minHeight = minWidth / aspect;
+
+  const pageRect = {
+    x: margin, y: margin,
+    w: PAGE_W - 2 * margin,
+    h: PAGE_H - 2 * margin,
+  };
+  const maxW = Math.min(pageRect.w, pageRect.h * aspect);
+
+  const placed = [];
+  let freeRects = [pageRect];
+
+  function splitAfter(rect, cw, ch) {
+    const leftoverW = rect.w - cw - gap;
+    const leftoverH = rect.h - ch - gap;
+    const out = [];
+    const splitHoriz = leftoverW * rect.h >= rect.w * leftoverH;
+    if (splitHoriz) {
+      if (leftoverW >= minWidth) out.push({ x: rect.x + cw + gap, y: rect.y, w: leftoverW, h: rect.h });
+      if (leftoverH >= minHeight) out.push({ x: rect.x, y: rect.y + ch + gap, w: cw, h: leftoverH });
+    } else {
+      if (leftoverW >= minWidth) out.push({ x: rect.x + cw + gap, y: rect.y, w: leftoverW, h: ch });
+      if (leftoverH >= minHeight) out.push({ x: rect.x, y: rect.y + ch + gap, w: rect.w, h: leftoverH });
+    }
+    return out.filter(r => r.w >= minWidth && r.h >= minHeight);
+  }
+
+  // Tier widths (inches) with per-tier max counts. Each tier is capped by BOTH
+  // a fraction of maxW (image-aware) AND a fraction of the page width
+  // (page-aware). The page cap prevents landscape images — where maxW = pageW —
+  // from using a hero so wide that no mid tiers can fit in the leftover strip.
+  const rawTiers = [
+    { w: Math.min(maxW * 0.95, pageRect.w * 0.71), max: 1  },   // big hero
+    { w: Math.min(maxW * 0.70, pageRect.w * 0.38), max: 2  },   // upper-mid
+    { w: Math.min(maxW * 0.52, pageRect.w * 0.26), max: 3  },   // mid
+    { w: Math.min(maxW * 0.38, pageRect.w * 0.21), max: 4  },   // mid-small
+    { w: 2.90,                                     max: 5  },   // small-large
+    { w: 2.30,                                     max: 8  },   // small
+    { w: 1.80,                                     max: 12 },   // extra-small
+    { w: 1.40,                                     max: 30 },   // smallest
+  ];
+  // De-dupe, keep descending, and drop tiers that would be too small or too big
+  const seen = new Set();
+  const tiers = rawTiers
+    .filter(t => {
+      const key = t.w.toFixed(2);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      const h = t.w / aspect;
+      return t.w >= minWidth && h >= minHeight && t.w <= maxW + 0.01;
+    })
+    .sort((a, b) => b.w - a.w);
+
+  for (const tier of tiers) {
+    const w = tier.w;
+    const h = w / aspect;
+    let placedOfThis = 0;
+    while (placedOfThis < tier.max) {
+      // Best-fit: smallest free rect that fits
+      let bestIdx = -1;
+      let bestArea = Infinity;
+      for (let i = 0; i < freeRects.length; i++) {
+        const f = freeRects[i];
+        if (f.w >= w - 0.001 && f.h >= h - 0.001) {
+          const area = f.w * f.h;
+          if (area < bestArea) { bestArea = area; bestIdx = i; }
+        }
+      }
+      if (bestIdx === -1) break;
+      const f = freeRects[bestIdx];
+      placed.push({ x: f.x, y: f.y, w, h });
+      const splits = splitAfter(f, w, h);
+      freeRects.splice(bestIdx, 1, ...splits);
+      placedOfThis++;
+    }
+  }
+
+  // Final pass: fill any remaining free rect with max-possible image copy (aspect-preserved),
+  // but only if that copy still meets minWidth/minHeight.
+  const leftover = [...freeRects];
+  for (const f of leftover) {
+    const stack = [f];
+    while (stack.length) {
+      const r = stack.pop();
+      if (r.w < minWidth || r.h < minHeight) continue;
+      let cw, ch;
+      const rectAspect = r.w / r.h;
+      if (rectAspect >= aspect) { ch = r.h; cw = ch * aspect; }
+      else { cw = r.w; ch = cw / aspect; }
+      if (cw < minWidth || ch < minHeight) continue;
+      placed.push({ x: r.x, y: r.y, w: cw, h: ch });
+      const splits = splitAfter(r, cw, ch);
+      stack.push(...splits);
+    }
+  }
+
+  return placed;
+}
+
+// --- Scatter packing: circles sized by real button inches, proportions preserved ---
+function computeScatter() {
+  if (!state.image || state.imageW === 0) return [];
+  const d = effectiveImageDims();
+  const imgW = d.w, imgH = d.h;
+  const shortDim = Math.min(imgW, imgH);
+  const aspect = imageAspect() || 1;
+  const shortFactor = Math.min(1, 1 / aspect);
+
+  let entries = (state.scatterSizes || []).filter(e => e.diamInches > 0 && e.count > 0);
+  if (entries.length === 0) {
+    entries = [
+      { diamInches: 3.00 * shortFactor, count: 1 },
+      { diamInches: 2.25 * shortFactor, count: 3 },
+      { diamInches: 1.75 * shortFactor, count: 5 },
+      { diamInches: 1.25 * shortFactor, count: 10 },
+      { diamInches: 1.00 * shortFactor, count: 18 },
+    ];
+  }
+
+  // Biggest button maps to ~42% of image short-dim; all smaller sizes preserve ratio.
+  const maxDiamInches = Math.max(...entries.map(e => e.diamInches));
+  const targetMaxPx = shortDim * state.scatterZoom;
+  const pxPerInch = targetMaxPx / maxDiamInches;
+
+  // Boost counts so smaller sizes fill the remaining space with variety.
+  const countBoost = 4;
+
+  const work = [];
+  for (const e of entries) {
+    const dPx = e.diamInches * pxPerInch;
+    const n = Math.max(1, Math.round(e.count * countBoost));
+    for (let i = 0; i < n; i++) work.push({ diamInches: e.diamInches, dPx });
+  }
+  work.sort((a, b) => b.dPx - a.dPx);
+
+  const placed = [];
+  const gap = shortDim * 0.005;
+  for (const w of work) {
+    const r = w.dPx / 2;
+    if (imgW - 2 * r < 0 || imgH - 2 * r < 0) continue;
+    let attempts = 400;
+    while (attempts-- > 0) {
+      const x = r + Math.random() * (imgW - 2 * r);
+      const y = r + Math.random() * (imgH - 2 * r);
+      let ok = true;
+      for (const p of placed) {
+        const dx = p.x - x, dy = p.y - y;
+        if (Math.hypot(dx, dy) < r + p.r + gap) { ok = false; break; }
+      }
+      if (ok) { placed.push({ x, y, r, diamInches: w.diamInches }); break; }
+    }
+  }
+  return placed;
+}
+
+function formatInch(v) {
+  const r = Math.round(v * 100) / 100;
+  return (Math.round(r * 100) / 100) + '"';
+}
+
+function renderScatter() {
+  const template = document.getElementById('template');
+  const scatter = document.getElementById('scatter-preview');
+  template.hidden = true;
+  scatter.hidden = false;
+
+  const img = document.getElementById('scatter-img');
+  const svg = document.getElementById('scatter-svg');
+  const d = effectiveImageDims();
+  scatter.style.width = d.w + 'px';
+  scatter.style.height = d.h + 'px';
+  svg.setAttribute('viewBox', `0 0 ${d.w} ${d.h}`);
+
+  // Apply rotation via CSS on the img
+  img.src = state.image || '';
+  if (state.rotation % 180 !== 0) {
+    img.style.width = state.imageH + 'px';
+    img.style.height = state.imageW + 'px';
+    img.style.left = '50%';
+    img.style.top = '50%';
+    img.style.position = 'absolute';
+    img.style.transformOrigin = 'center center';
+    img.style.transform = `translate(-50%, -50%) rotate(${state.rotation}deg)`;
+  } else if (state.rotation) {
+    img.style.width = '100%'; img.style.height = '100%';
+    img.style.left = '0'; img.style.top = '0';
+    img.style.transform = `rotate(${state.rotation}deg)`;
+    img.style.transformOrigin = 'center center';
+  } else {
+    img.style.width = '100%'; img.style.height = '100%';
+    img.style.left = '0'; img.style.top = '0';
+    img.style.transform = '';
+  }
+
+  const shortDim = Math.min(d.w, d.h);
+  const outerStroke = Math.max(3, shortDim * 0.009);
+  const innerStroke = Math.max(2, shortDim * 0.0055);
+
+  const parts = [];
+  for (const p of state.scatterPlacements) {
+    parts.push(
+      `<circle cx="${p.x}" cy="${p.y}" r="${p.r}" fill="none" stroke="#000" stroke-width="${outerStroke}" stroke-opacity="0.75"/>`,
+      `<circle cx="${p.x}" cy="${p.y}" r="${p.r}" fill="none" stroke="#fff" stroke-width="${innerStroke}"/>`
+    );
+    // Label bigger circles with their physical button size in inches.
+    if (p.diamInches >= 1.0 && p.r > shortDim * 0.03) {
+      const fs = p.r * 0.38;
+      const label = formatInch(p.diamInches);
+      parts.push(
+        `<text x="${p.x}" y="${p.y}" fill="#fff" text-anchor="middle" dominant-baseline="central" font-size="${fs}" font-weight="700" font-family="-apple-system, system-ui, sans-serif" style="paint-order:stroke; stroke:#000; stroke-width:${fs * 0.18}; stroke-linejoin:round;">${label}</text>`
+      );
+    }
+  }
+  svg.innerHTML = parts.join('');
+}
+
+// --- Render ---
+function render() {
+  if (state.scatterMode) {
+    renderScatter();
+    updateScatterStats();
+    updateAddSizeVisibility();
+    updateZoom();
+    return;
+  }
+  document.getElementById('scatter-preview').hidden = true;
+  document.getElementById('template').hidden = false;
+
+  const template = document.getElementById('template');
+  const copies = layout();
+
+  template.classList.toggle('show-bounds', state.showBounds);
+  template.classList.toggle('empty', copies.length === 0);
+  template.innerHTML = '';
+
+  if (copies.length === 0) {
+    template.innerHTML = state.image
+      ? '<span style="color:#888;">No copies placed — check widths & counts</span>'
+      : '<span>Drop an image to get started</span>';
+  } else {
+    const frag = document.createDocumentFragment();
+    const aspect = imageAspect();
+    for (const c of copies) {
+      const el = document.createElement('div');
+      el.className = 'copy';
+      el.style.left = c.x + 'in';
+      el.style.top = c.y + 'in';
+      el.style.width = c.w + 'in';
+      el.style.height = c.h + 'in';
+
+      if (state.image) {
+        const img = document.createElement('img');
+        img.src = state.image;
+        if (state.rotation) {
+          img.style.transform = `rotate(${state.rotation}deg)`;
+          if (state.rotation % 180 !== 0) {
+            // swap w/h
+            img.style.width = c.h + 'in';
+            img.style.height = c.w + 'in';
+            img.style.position = 'absolute';
+            img.style.left = '50%';
+            img.style.top = '50%';
+            img.style.transformOrigin = 'center center';
+            img.style.transform = `translate(-50%, -50%) rotate(${state.rotation}deg)`;
+          }
+        }
+        el.appendChild(img);
+      }
+
+      frag.appendChild(el);
+    }
+    template.appendChild(frag);
+
+    if (state.showGuides) {
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', `0 0 ${PAGE_W} ${PAGE_H}`);
+      svg.setAttribute('preserveAspectRatio', 'none');
+      svg.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; pointer-events:none;';
+      const outerW = 0.07; // inches
+      const innerW = 0.045;
+      const parts = [];
+      for (const c of copies) {
+        const cx = c.x + c.w / 2;
+        const cy = c.y + c.h / 2;
+        const r = Math.min(c.w, c.h) / 2;
+        parts.push(
+          `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#000" stroke-width="${outerW}" stroke-opacity="0.75"/>`,
+          `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#fff" stroke-width="${innerW}"/>`
+        );
+      }
+      svg.innerHTML = parts.join('');
+      template.appendChild(svg);
+    }
+  }
+
+  updateStats(copies);
+  updateAddSizeVisibility();
+  updateZoom();
+}
+
+function updateScatterStats() {
+  const stats = document.getElementById('stats');
+  const n = state.scatterPlacements.length;
+  if (!state.image) { stats.innerHTML = 'Drop an image to get started'; return; }
+  if (!n) { stats.innerHTML = 'No buttons scattered yet'; return; }
+  const buckets = {};
+  for (const p of state.scatterPlacements) {
+    const key = formatInch(p.diamInches);
+    buckets[key] = (buckets[key] || 0) + 1;
+  }
+  const parts = Object.entries(buckets)
+    .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]))
+    .map(([k, v]) => `<strong>${v}</strong> × ${k}`);
+  stats.innerHTML = `Scattered ${n} button previews (relative scale)<br>${parts.join(' &nbsp; ')}`;
+}
+
+function updateStats(copies) {
+  const stats = document.getElementById('stats');
+  if (copies.length === 0) {
+    stats.innerHTML = state.image ? 'No copies placed — try smaller widths or reduce counts' : 'Drop an image to get started';
+    return;
+  }
+  const byW = {};
+  for (const c of copies) {
+    const key = c.w.toFixed(2);
+    byW[key] = (byW[key] || 0) + 1;
+  }
+  const parts = Object.entries(byW)
+    .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]))
+    .map(([w, n]) => `<strong>${n}</strong> × ${parseFloat(w)}" wide`);
+  stats.innerHTML = `Placed ${copies.length} image copies<br>${parts.join(' &nbsp; ')}`;
+}
+
+// --- Zoom ---
+function getContentSize() {
+  if (state.scatterMode && state.image) {
+    const d = effectiveImageDims();
+    return { w: d.w, h: d.h };
+  }
+  return { w: PAGE_W * PX_PER_IN, h: PAGE_H * PX_PER_IN };
+}
+
+function getFitScale() {
+  const main = document.getElementById('main');
+  const availW = main.clientWidth - 60;
+  const availH = main.clientHeight - 60;
+  const { w, h } = getContentSize();
+  const scaleW = availW / w;
+  const scaleH = availH / h;
+  return Math.min(scaleW, scaleH, 1);
+}
+
+function updateZoom() {
+  const template = document.getElementById('template');
+  const scatter = document.getElementById('scatter-preview');
+  const wrap = document.getElementById('preview-wrap');
+  const scale = state.zoom == null ? getFitScale() : state.zoom;
+  const { w, h } = getContentSize();
+  if (state.scatterMode) {
+    scatter.style.transform = `scale(${scale})`;
+    template.style.transform = '';
+  } else {
+    template.style.transform = `scale(${scale})`;
+    scatter.style.transform = '';
+  }
+  wrap.style.width = (w * scale) + 'px';
+  wrap.style.height = (h * scale) + 'px';
+  document.getElementById('zoom-label').textContent =
+    state.zoom == null ? 'Fit' : Math.round(scale * 100) + '%';
+}
+
+document.getElementById('zoom-in').addEventListener('click', () => {
+  const current = state.zoom == null ? getFitScale() : state.zoom;
+  state.zoom = Math.min(3, current * 1.25);
+  updateZoom();
+});
+document.getElementById('zoom-out').addEventListener('click', () => {
+  const current = state.zoom == null ? getFitScale() : state.zoom;
+  state.zoom = Math.max(0.1, current / 1.25);
+  updateZoom();
+});
+document.getElementById('zoom-fit').addEventListener('click', () => {
+  state.zoom = null;
+  updateZoom();
+});
+
+window.addEventListener('resize', () => {
+  if (state.zoom == null) updateZoom();
+});
+
+// --- Print ---
+document.getElementById('print-btn').addEventListener('click', () => {
+  window.print();
+});
+
+// Init
+renderSizes();
+render();
+</script>
+</body>
+</html>
