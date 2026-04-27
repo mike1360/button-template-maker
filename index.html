@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Button Template Maker — 19×13</title>
+<title>Button Template Maker</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -73,6 +73,9 @@
   .preset-row { display: flex; gap: 6px; margin-top: 6px; }
   .preset-row button { flex: 1; padding: 7px 8px; font-size: 12px; background: #262626; color: #bbb; border: 1px solid #333; border-radius: 5px; cursor: pointer; }
   .preset-row button:hover { background: #333; border-color: #0a84ff; color: #fff; }
+  .preset-row button.active { background: #0a84ff; color: #fff; border-color: #0a84ff; }
+  .preset-row button.active:hover { background: #0070e0; border-color: #0a84ff; color: #fff; }
+  .template.button-preview-mode { cursor: none; }
 
   .option-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -106,7 +109,7 @@
     position: relative; flex-shrink: 0;
   }
   .template {
-    width: 19in; height: 13in; position: relative; background: #fff;
+    position: relative; background: #fff;
     transform-origin: top left; overflow: hidden;
   }
   .copy {
@@ -164,15 +167,15 @@
     .template { transform: none !important; box-shadow: none; }
     .template > svg { display: none !important; }
     .show-bounds .copy { box-shadow: none; }
-    @page { size: 19in 13in; margin: 0; }
   }
 </style>
+<style id="page-style">@page { size: 8.5in 11in; margin: 0; }</style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <h1>Button Template Maker</h1>
-    <div class="sub">19"×13" sheet — print your image at a variety of sizes and cut buttons from the copies.</div>
+    <div class="sub" id="subtitle">8.5"×11" sheet — print your image at a variety of sizes and cut buttons from the copies.</div>
 
     <h2>Artwork</h2>
     <label class="dropzone" id="dropzone">
@@ -200,6 +203,21 @@
       <button id="reroll-scatter" style="display:none;">↻ Re-roll</button>
     </div>
 
+    <h2>Paper Size</h2>
+    <div class="option-row">
+      <label for="paper-size">Paper</label>
+      <select id="paper-size" style="background:#262626;color:#eee;border:1px solid #333;border-radius:5px;padding:6px 8px;font-size:13px;">
+        <option value="letter">Letter (8.5 × 11")</option>
+        <option value="legal">Legal (8.5 × 14")</option>
+        <option value="tabloid">Tabloid (11 × 17")</option>
+        <option value="superB">Super B (13 × 19")</option>
+      </select>
+    </div>
+    <div class="option-row">
+      <label for="landscape">Landscape</label>
+      <input type="checkbox" id="landscape">
+    </div>
+
     <h2>Layout</h2>
     <div class="option-row">
       <label for="spacing">Gap between copies (in)</label>
@@ -218,12 +236,22 @@
       <input type="checkbox" id="show-guides" checked>
     </div>
 
+    <h2>Button Preview</h2>
+    <div style="font-size:11px;color:#888;line-height:1.5;margin-bottom:8px;">
+      Click a size, then hover the cursor over the image to preview a button cut at that scale.
+    </div>
+    <div class="preset-row">
+      <button data-preview-size="2.25">2¼"</button>
+      <button data-preview-size="1.25">1¼"</button>
+      <button data-preview-size="0.875">⅞"</button>
+    </div>
+
     <h2>Output</h2>
     <button class="action" id="print-btn">Print Template</button>
     <div class="stats" id="stats">Drop an image to get started</div>
 
     <div class="tip">
-      <strong style="color:#0a84ff;">Printing:</strong> In the print dialog choose <strong>19×13" (Super B / Tabloid Extra)</strong>, <strong>Actual Size / 100% scale</strong> — disable "Fit to page".
+      <strong style="color:#0a84ff;">Printing:</strong> In the print dialog choose <strong id="print-tip-size">8.5×11"</strong> at <strong>Actual Size / 100% scale</strong> — disable "Fit to page".
     </div>
   </aside>
 
@@ -248,7 +276,13 @@
 </div>
 
 <script>
-const PAGE_W = 19, PAGE_H = 13;
+const PAPER_SIZES = {
+  letter:  { name: 'Letter (8.5 × 11")',  w: 8.5,  h: 11 },
+  legal:   { name: 'Legal (8.5 × 14")',   w: 8.5,  h: 14 },
+  tabloid: { name: 'Tabloid (11 × 17")',  w: 11,   h: 17 },
+  superB:  { name: 'Super B (13 × 19")',  w: 13,   h: 19 },
+};
+let PAGE_W = 8.5, PAGE_H = 11;
 const PX_PER_IN = 96;
 
 const state = {
@@ -271,9 +305,28 @@ const state = {
   showBounds: true,
   showGuides: true,
   zoom: null,
+  paperKey: 'letter',
+  landscape: false,
+  buttonPreviewSize: null,
 };
 
 let nextSizeId = 4;
+
+// --- Paper size ---
+function applyPaper() {
+  const p = PAPER_SIZES[state.paperKey];
+  if (state.landscape) { PAGE_W = p.h; PAGE_H = p.w; }
+  else { PAGE_W = p.w; PAGE_H = p.h; }
+  const tpl = document.getElementById('template');
+  tpl.style.width = PAGE_W + 'in';
+  tpl.style.height = PAGE_H + 'in';
+  document.getElementById('page-style').textContent =
+    `@page { size: ${PAGE_W}in ${PAGE_H}in; margin: 0; }`;
+  const tip = document.getElementById('print-tip-size');
+  if (tip) tip.textContent = PAGE_W + '×' + PAGE_H + '"';
+  const sub = document.getElementById('subtitle');
+  if (sub) sub.textContent = `${PAGE_W}"×${PAGE_H}" sheet — print your image at a variety of sizes and cut buttons from the copies.`;
+}
 
 // --- Aspect helpers ---
 function effectiveImageDims() {
@@ -289,6 +342,17 @@ function imageAspect() {
 function renderSizes() {
   const container = document.getElementById('sizes');
   container.innerHTML = '';
+  if (state.buttonPreviewSize) {
+    const fracMap = { 2.25: '2¼"', 1.25: '1¼"', 0.875: '⅞"' };
+    container.innerHTML = `
+      <div style="padding:12px;background:#1e2a3a;border:1px solid #0a84ff;border-radius:6px;font-size:12px;color:#9ac3ff;line-height:1.5;">
+        <strong style="color:#fff;">Button preview mode</strong><br>
+        Hover the cursor over the image to preview a ${fracMap[state.buttonPreviewSize] || state.buttonPreviewSize + '"'} button cut.<br>
+        <span style="color:#788;">Click the active size again to exit.</span>
+      </div>
+    `;
+    return;
+  }
   if (state.scatterMode) {
     container.innerHTML = `
       <div style="padding:12px;background:#2a1e3a;border:1px solid #a060ff;border-radius:6px;font-size:12px;color:#c89aff;line-height:1.5;">
@@ -350,14 +414,21 @@ document.getElementById('add-size').addEventListener('click', () => {
 });
 
 function updateAddSizeVisibility() {
-  document.getElementById('add-size').style.display = (state.fillMode || state.scatterMode) ? 'none' : '';
+  document.getElementById('add-size').style.display = (state.fillMode || state.scatterMode || state.buttonPreviewSize) ? 'none' : '';
   document.getElementById('reroll-scatter').style.display = state.scatterMode ? '' : 'none';
   document.getElementById('preset-scatter').style.display = state.scatterMode ? 'none' : '';
+}
+
+function clearPreviewMode() {
+  state.buttonPreviewSize = null;
+  cursorVisible = false;
+  updatePreviewButtons();
 }
 
 document.getElementById('preset-variety').addEventListener('click', () => {
   state.fillMode = false;
   state.scatterMode = false;
+  clearPreviewMode();
   state.sizes = [
     { id: nextSizeId++, width: 9, count: 1 },
     { id: nextSizeId++, width: 4.5, count: 2 },
@@ -370,6 +441,7 @@ document.getElementById('preset-variety').addEventListener('click', () => {
 document.getElementById('preset-fill').addEventListener('click', () => {
   state.fillMode = true;
   state.scatterMode = false;
+  clearPreviewMode();
   renderSizes();
   render();
 });
@@ -377,6 +449,7 @@ document.getElementById('preset-fill').addEventListener('click', () => {
 document.getElementById('preset-big').addEventListener('click', () => {
   state.fillMode = false;
   state.scatterMode = false;
+  clearPreviewMode();
   state.sizes = [
     { id: nextSizeId++, width: 12, count: 1 },
     { id: nextSizeId++, width: 5, count: 1 },
@@ -390,6 +463,7 @@ document.getElementById('preset-scatter').addEventListener('click', () => {
   state.scatterSizes = snapshotButtonSizes();
   state.scatterMode = true;
   state.fillMode = false;
+  clearPreviewMode();
   state.scatterPlacements = computeScatter();
   state.zoom = null; // re-fit
   renderSizes();
@@ -501,6 +575,18 @@ document.getElementById('show-bounds').addEventListener('change', e => {
 });
 document.getElementById('show-guides').addEventListener('change', e => {
   state.showGuides = e.target.checked;
+  render();
+});
+document.getElementById('paper-size').addEventListener('change', e => {
+  state.paperKey = e.target.value;
+  state.zoom = null;
+  applyPaper();
+  render();
+});
+document.getElementById('landscape').addEventListener('change', e => {
+  state.landscape = e.target.checked;
+  state.zoom = null;
+  applyPaper();
   render();
 });
 
@@ -779,6 +865,10 @@ function renderScatter() {
 
 // --- Render ---
 function render() {
+  const scatterEl = document.getElementById('scatter-preview');
+  const templateEl = document.getElementById('template');
+  templateEl.classList.toggle('button-preview-mode', !!state.buttonPreviewSize);
+
   if (state.scatterMode) {
     renderScatter();
     updateScatterStats();
@@ -786,10 +876,10 @@ function render() {
     updateZoom();
     return;
   }
-  document.getElementById('scatter-preview').hidden = true;
-  document.getElementById('template').hidden = false;
+  scatterEl.hidden = true;
+  templateEl.hidden = false;
 
-  const template = document.getElementById('template');
+  const template = templateEl;
   const copies = layout();
 
   template.classList.toggle('show-bounds', state.showBounds);
@@ -834,7 +924,7 @@ function render() {
     }
     template.appendChild(frag);
 
-    if (state.showGuides) {
+    if (state.showGuides && !state.buttonPreviewSize) {
       const NS = 'http://www.w3.org/2000/svg';
       const svg = document.createElementNS(NS, 'svg');
       svg.setAttribute('viewBox', `0 0 ${PAGE_W} ${PAGE_H}`);
@@ -857,7 +947,22 @@ function render() {
     }
   }
 
-  updateStats(copies);
+  if (state.buttonPreviewSize) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const cursorSvg = document.createElementNS(NS, 'svg');
+    cursorSvg.id = 'cursor-svg';
+    cursorSvg.setAttribute('viewBox', `0 0 ${PAGE_W} ${PAGE_H}`);
+    cursorSvg.setAttribute('preserveAspectRatio', 'none');
+    cursorSvg.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; pointer-events:none;';
+    template.appendChild(cursorSvg);
+    drawCursorOverlay();
+  }
+
+  if (state.buttonPreviewSize) {
+    updateButtonPreviewStats();
+  } else {
+    updateStats(copies);
+  }
   updateAddSizeVisibility();
   updateZoom();
 }
@@ -957,7 +1062,68 @@ document.getElementById('print-btn').addEventListener('click', () => {
   window.print();
 });
 
+// --- Button preview cursor (overlay on template) ---
+let cursorVisible = false;
+let cursorX = 0, cursorY = 0; // in inches, in template coordinate space
+
+function updatePreviewButtons() {
+  document.querySelectorAll('[data-preview-size]').forEach(btn => {
+    btn.classList.toggle('active', state.buttonPreviewSize === parseFloat(btn.dataset.previewSize));
+  });
+}
+
+document.querySelectorAll('[data-preview-size]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const size = parseFloat(btn.dataset.previewSize);
+    if (state.buttonPreviewSize === size) {
+      state.buttonPreviewSize = null;
+    } else {
+      state.buttonPreviewSize = size;
+      state.scatterMode = false;
+    }
+    cursorVisible = false;
+    updatePreviewButtons();
+    renderSizes();
+    render();
+  });
+});
+
+const _templateEl = document.getElementById('template');
+_templateEl.addEventListener('mousemove', e => {
+  if (!state.buttonPreviewSize) return;
+  const rect = _templateEl.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return;
+  cursorX = ((e.clientX - rect.left) / rect.width) * PAGE_W;
+  cursorY = ((e.clientY - rect.top) / rect.height) * PAGE_H;
+  cursorVisible = true;
+  drawCursorOverlay();
+});
+_templateEl.addEventListener('mouseleave', () => {
+  if (!state.buttonPreviewSize) return;
+  cursorVisible = false;
+  drawCursorOverlay();
+});
+
+function drawCursorOverlay() {
+  const svg = document.getElementById('cursor-svg');
+  if (!svg) return;
+  if (!state.buttonPreviewSize || !cursorVisible) { svg.innerHTML = ''; return; }
+  const r = state.buttonPreviewSize / 2;
+  const outerW = 0.04, innerW = 0.025;
+  svg.innerHTML =
+    `<circle cx="${cursorX}" cy="${cursorY}" r="${r}" fill="none" stroke="#000" stroke-width="${outerW}" stroke-opacity="0.85"/>` +
+    `<circle cx="${cursorX}" cy="${cursorY}" r="${r}" fill="none" stroke="#fff" stroke-width="${innerW}"/>`;
+}
+
+function updateButtonPreviewStats() {
+  const stats = document.getElementById('stats');
+  const fracMap = { 2.25: '2¼"', 1.25: '1¼"', 0.875: '⅞"' };
+  const size = state.buttonPreviewSize;
+  stats.innerHTML = `Previewing <strong>${fracMap[size] || size + '"'}</strong> button — hover over an image copy to position the cut.`;
+}
+
 // Init
+applyPaper();
 renderSizes();
 render();
 </script>
